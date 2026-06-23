@@ -36,7 +36,7 @@ pip install click==8.1.8 lark==1.2.2 py7zr==1.0.0 rarfile==4.2 rapidfuzz==3.13.0
 
 Run the command with a search query:
 ```sh
-pseek <query> [options]
+psk <query> [options]
 ```
 
 ## Examples
@@ -44,25 +44,25 @@ pseek <query> [options]
 ### Search for a keyword in file & folder names
 
 ```sh
-pseek "my_keyword" --path /path/to/search --file --directory
+psk "my_keyword" --path /path/to/search --file --directory
 ```
 
 ### Search inside file contents
 
 ```sh
-pseek "error" --path /var/logs --content
+psk "error" --path /var/logs --content
 ```
 
 ### Search only in specific file types
 
 ```sh
-pseek "TODO" --path ./projects --ext py --ext txt
+psk "TODO" --path ./projects --ext py --ext txt
 ```
 
 ### Search by regex
 
 ```sh
-pseek "error\d+" --regex
+psk "error\d+" --regex
 ```
 
 ## Command Options
@@ -82,7 +82,7 @@ pseek "error\d+" --regex
 | `--expr`                       | Enable to write conditions in the query. Example: `r"foo.*bar" and ("bar" or "baz") and not "qux"` (To use regex, word, case-sensitive, and fuzzy features, you can use the prefixes `r`, `w`, `c`, and `f` before terms. Allowed modes: `r`, `c`, `w`, `f`, `rc`, `cr`, `cw`, `wc`, `cf`, `fc`, `wf`, `fw`, `cwf`, `cfw`, `wcf`, `wfc`, `fcw`, `fwc`. Examples: `r"foo.*bar"`, `wcf"Aple"`, `cr".*Foo"`, ...) |
 | `--timeout`                    | To stop the search after a specified period of time (Seconds)                                                                                                                                                                                                                                                                                                                                                  |
 | `--fuzzy`                      | Enable fuzzy search (Highlighting and counting matches are disabled in this mode if `--word` is not enabled to prevent the program from slowing down). except when `--expr` is enabled, in which case you can make it fuzzy by putting `f` before term: `f"foo"`                                                                                                                                               |
-| `--fuzzy_level`                | Similarity threshold from 0 to 99 for fuzzy search (default: `80`)                                                                                                                                                                                                                                                                                                                                             |
+| `--fuzzy-level`                | Similarity threshold from 0 to 99 for fuzzy search (default: `80`)                                                                                                                                                                                                                                                                                                                                             |
 | `--max-size`, `--min-size`     | Specify maximum and minimum sizes for files and directories                                                                                                                                                                                                                                                                                                                                                    |
 | `--archive`                    | Enable search within archive files (e.g. `zip`, `rar`, `7z`, `gz`, `bz2`, `xz`, `tar`, `tar.gz`, `tar.bz2`, `tar.xz`)                                                                                                                                                                                                                                                                                          |
 | `--depth`                      | Maximum archive depth to recurse into (e.g. 2 means only 2 levels)                                                                                                                                                                                                                                                                                                                                             |

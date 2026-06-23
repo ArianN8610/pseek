@@ -1,22 +1,101 @@
-import click
-from .searcher import Search
-from multiprocessing import Process
-from .utils import check_rar_backend
+import click, re
+from pathlib import Path
+from .searcher import seek
+from .utils import check_rar_backend, compile_regex
+from concurrent.futures import ProcessPoolExecutor, TimeoutError
+from dataclasses import dataclass
 
 
-def run_search_process(file, directory, content, search_instance):
-    """Performs the basic search operation"""
+@dataclass
+class SearchConfig:
+    query: str
+    path: Path
+    file: bool
+    directory: bool
+    content: bool
+    case_sensitive: bool
+    regex: bool
+    word: bool
+    expr: bool
+    timeout: int | None
+    fuzzy: bool
+    fuzzy_level: int
+    ext: set[str]
+    exclude_ext: set[str]
+    include: set[Path]
+    exclude: set[Path]
+    re_include: re.Pattern | None
+    re_exclude: re.Pattern | None
+    max_size: float | None
+    min_size: float | None
+    archive: bool
+    depth: int | None
+    arc_ext: set[str]
+    arc_ee: set[str]
+    arc_inc: set[Path]
+    arc_exc: set[Path]
+    arc_max: float | None
+    arc_min: float | None
+    rarfb: str | None
+    full_path: bool
+    no_content: bool
+    
+    def __post_init__(self):
+        """Post-initialization processing to normalize and validate inputs"""
+        self.path = Path(self.path)
+        
+        # Normalize extensions
+        self.ext = set(self.ext)
+        self.exclude_ext = (
+            set(self.exclude_ext) | {''}
+            if self.exclude_ext
+            else set()
+        )
+        self.arc_ext = set(self.arc_ext)
+        self.arc_ee = (
+            set(self.arc_ee) | {''}
+            if self.arc_ee
+            else set()
+        )
+        
+        # Normalize include and exclude paths
+        self.include = {Path(p).resolve() for p in self.include}
+        self.exclude = {Path(p).resolve() for p in self.exclude}
+        self.arc_inc = {Path(p) for p in self.arc_inc}
+        self.arc_exc = {Path(p) for p in self.arc_exc}
+        
+        # Compile regex patterns
+        self.re_include = compile_regex(self.re_include)
+        self.re_exclude = compile_regex(self.re_exclude)
+
+
+def echo(results: dict) -> int:
+    """
+    Display the search results with a title.
+    Returns the count of results.
+    """
     total_results = 0
 
-    # Search for files if requested.
-    if file:
-        total_results += search_instance.search('file').echo('Files', 'file')
-    # Search for directories if requested and extension filters are not active.
-    if directory:
-        total_results += search_instance.search('directory').echo('Directories', 'directory')
-    # Search for content inside files if requested.
-    if content:
-        total_results += search_instance.search('content').echo('Contents', 'content')
+    for match_type, paths in results.items():
+        count_result = 0
+        results_title = 'Directories' if match_type == 'directory' else match_type.title() + 's'
+
+        if paths:
+            click.echo(click.style(f'\n{results_title}:\n', fg='yellow'))
+            if isinstance(paths, dict):
+                # For content search results
+                for key, value in paths.items():
+                    click.echo(key + '\n' + '\n'.join(value) + '\n')
+                    count_result += len(value)
+            else:
+                # For file/directory search results
+                count_result = len(paths)
+                click.echo('\n'.join(paths))
+
+            if count_result >= 3:
+                click.echo(click.style(f'\n{count_result} results found for {match_type}', fg='blue'))
+
+        total_results += count_result
 
     # Display final summary message.
     message = f'\nTotal results: {total_results}' if total_results else 'No results found'
@@ -95,22 +174,22 @@ def run_search_process(file, directory, content, search_instance):
 # Output option
 @click.option('--full-path', is_flag=True, help='Display full paths for results.')
 @click.option('--no-content', is_flag=True, help='Only display files path for content search.')
-def search(query, path, file, directory, content, case_sensitive, ext, exclude_ext, regex, include, exclude,
-           re_include, re_exclude, word, expr, timeout, fuzzy, fuzzy_level, max_size, min_size, archive, depth,
-           arc_ext, arc_ee, arc_inc, arc_exc, arc_max, arc_min, rarfb, full_path, no_content):
+def search(**kwargs):
     """Search for files, directories, and file content based on the query."""
 
-    check_rar_backend(archive, rarfb, query)
+    config = SearchConfig(**kwargs)
 
-    if not expr and fuzzy:
-        if not word:
+    check_rar_backend(config.archive, config.rarfb, config.query)
+
+    if not config.expr and config.fuzzy:
+        if not config.word:
             click.echo(
                 click.style(
                     "Warning: Fuzzy substring highlighting and counting matches are disabled to improve performance.\n",
                     fg="yellow"
                 )
             )
-        elif word and " " in query:
+        elif config.word and " " in config.query:
             click.echo(
                 click.style(
                     'Warning: When using "--fuzzy" and "--word", it is better to have the query be a word and '
@@ -120,54 +199,25 @@ def search(query, path, file, directory, content, case_sensitive, ext, exclude_e
             )
 
     # If no search type is specified, search in all types.
-    if not any((file, directory, content)):
-        file = directory = content = True
+    if not any((config.file, config.directory, config.content)):
+        config.file = config.directory = config.content = True
 
-    # Initialize the Search class with provided options.
-    search_instance = Search(
-        base_path=path,
-        query=query,
-        case_sensitive=case_sensitive,
-        ext=ext,
-        exclude_ext=exclude_ext,
-        regex=regex,
-        include=include,
-        exclude=exclude,
-        re_include=re_include,
-        re_exclude=re_exclude,
-        whole_word=word,
-        expr=expr,
-        fuzzy=fuzzy,
-        fuzzy_level=fuzzy_level,
-        max_size=max_size,
-        min_size=min_size,
-        archive=archive,
-        depth=depth,
-        arc_ext=arc_ext,
-        arc_ee=arc_ee,
-        arc_inc=arc_inc,
-        arc_exc=arc_exc,
-        arc_max=arc_max,
-        arc_min=arc_min,
-        full_path=full_path,
-        no_content=no_content
-    )
-
-    # Stop search if it exceeds timeout with multiprocessing
-    if timeout:
-        p = Process(
-            target=run_search_process,
-            args=(file, directory, content, ext, exclude_ext, search_instance)
-        )
-        p.start()
-        p.join(timeout)
-
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            click.echo(click.style(f"\nTimeout! Search exceeded {timeout} seconds and was stopped.", fg="red"))
+    # Stop search if it exceeds timeout (It doesn't kill the func and the func continues to execute in the background)
+    if config.timeout:
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(seek, config)
+            try:
+                result = future.result(timeout=config.timeout)
+                echo(result)
+            except TimeoutError:
+                click.echo(
+                    click.style(
+                        f"Timeout! Search exceeded {config.timeout} seconds and was stopped.",
+                        fg="red"
+                    )
+                )
     else:
-        run_search_process(file, directory, content, search_instance)
+        echo(seek(config))
 
 
 if __name__ == "__main__":

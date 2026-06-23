@@ -1,10 +1,22 @@
 import re, sys, click, shutil, rarfile, platform
 from pathlib import Path
 
-EXTENSIONS_PATH = Path(__file__).parent / "extensions"
+# Extensions that are not suitable for content search (binary, media, etc.)
+EXCLUDED_EXTENSIONS = (
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'svg',
+    'mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'm4v', 'mpg', 'wmv',
+    'mp3', 'wav', 'ogg', 'flac', 'aac', 'wma', 'opus',
+    'exe', 'dll', 'bin', 'iso', 'img', 'dat', 'dmg', 'class', 'so', 'o', 'obj',
+    'ttf', 'otf', 'woff', 'woff2', 'eot',
+    'db', 'sqlite', 'mdf', 'bak', 'log', 'jsonl', 'dat',
+    'apk', 'ipa', 'deb', 'rpm', 'pkg', 'appimage', 'jar', 'war',
+    'pyc', 'ps1', 'pem', 'pyd', 'whl'
+)
+
+EXTENSIONS_PATH = Path(__file__).parent / "compound_extensions"
 
 
-def compile_regex(txt, flags=0):
+def compile_regex(txt, flags=0) -> re.Pattern | None:
     if txt is not None:
         try:
             return re.compile(txt, flags)

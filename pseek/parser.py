@@ -171,26 +171,33 @@ class TreeToExpr(Transformer):
         return NotNode(args[0])
 
 
-def parse_query_expression(query: str, expr, regex, whole_word, case_sensitive, fuzzy, fuzzy_level) -> ExprNode:
+def parse_query_expression(config) -> ExprNode:
     """
     Function to parse the query and return expression tree.
     If expr is False, treat the whole query as a single term.
     """
 
-    if not expr:
-        return TermNode(query, regex, whole_word, case_sensitive, fuzzy, fuzzy_level)
+    if not config.expr:
+        return TermNode(
+            config.query,
+            config.regex,
+            config.word,
+            config.case_sensitive,
+            config.fuzzy,
+            config.fuzzy_level
+        )
 
     # Otherwise, parse using Lark
     parser = Lark(query_grammar, parser="lalr")
     try:
-        tree = parser.parse(query)
-        return TreeToExpr(fuzzy_level).transform(tree)
+        tree = parser.parse(config.query)
+        return TreeToExpr(config.fuzzy_level).transform(tree)
     except Exception as e:
         click.echo(click.style("Query parser error:\n\n", fg='red') + str(e))
         sys.exit(1)
 
 
-def highlight_text(expr: ExprNode, text: str, fuzzy: bool) -> str:
+def highlight_text(expr: ExprNode, text: str) -> str:
     """
     Highlight matching parts of the text.
     Only highlights fuzzy matches when whole_word=True.
