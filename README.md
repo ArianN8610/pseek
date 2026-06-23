@@ -1,69 +1,67 @@
 # Pseek
 
-## Overview
-
-A powerful command-line tool for searching files, directories, and content inside files efficiently. The tool supports searching by name, content, extensions, and more with advanced filtering options.
+Fast and powerful command-line search tool for finding files, directories, and text content. 
 
 ## Features
 
-* **Search in file & folder names**
-* **Search inside file contents**
-* **Highlight matches** in terminal output
-* **Optimized for speed** with ThreadPoolExecutor
-* Support **logical expression** for search queries
-* Search inside **archive files** (e.g. `zip`, `rar`, `7z`, `gz`, `bz2`, `xz`, `tar`, `tar.gz`, `tar.bz2`, `tar.xz`)
-* **Cross-platform** (Linux, macOS, Windows)
+* Search file names
+* Search directory names
+* Search file contents
+* Search inside archive files
+* Boolean query expressions (`and`, `or`, `not`)
+* Regular expressions
+* Fuzzy matching
+* Whole-word matching
+* Case-sensitive search
+* Archive recursion depth control
+* Extension filters
+* Path filters
+* Size filtering
+* Full path output
+* Highlight matches in output
+* Cross-platform (Linux, macOS, Windows)
 
 ## Installation
 
-### **`1` Install via `pip` (Recommended)**
+### Install from PyPI (Recommended)
 
-```sh
+```bash
 pip install pseek
 ```
 
-### **`2` Install from source**
+### Install from Source
 
-```sh
+```bash
 git clone https://github.com/ArianN8610/pysearch.git
+
 cd pysearch
+
 python -m venv venv
-[Activate venv]
+
+# Activate virtual environment
+
 pip install click==8.1.8 lark==1.2.2 py7zr==1.0.0 rarfile==4.2 rapidfuzz==3.13.0
 ```
 
-## Usage
+## Basic Usage
 
-Run the command with a search query:
-```sh
+```bash
 psk <query> [options]
 ```
 
-## Examples
+Example:
 
-### Search for a keyword in file & folder names
-
-```sh
-psk "my_keyword" --path /path/to/search --file --directory
+```bash
+psk "error"
 ```
 
-### Search inside file contents
+If no search type is specified, Pseek searches:
 
-```sh
-psk "error" --path /var/logs --content
-```
+- File names
+- Directory names
+- File contents
 
-### Search only in specific file types
-
-```sh
-psk "TODO" --path ./projects --ext py --ext txt
-```
-
-### Search by regex
-
-```sh
-psk "error\d+" --regex
-```
+simultaneously.
 
 ## Command Options
 
@@ -79,7 +77,7 @@ psk "error\d+" --regex
 | `--include`, `--exclude`         | Limit search results to specific set of directories or files                                                                                                                                                                                                     |
 | `--re-include`, `--re-exclude`   | Limit search results to specific directories or files with regex                                                                                                                                                                                                 |
 | `--word`                         | Match the whole word only (except when `--expr` is enabled, in which case you can make it match whole word by putting `w` before term: `w"foo"`)                                                                                                                 |
-| `--expr`                         | Enable boolean query expressions. Example: r"foo.*bar" and ("bar" or "baz") and not "qux". Prefixes: r=regex, c=case-sensitive, w=whole-word, f=fuzzy                                                                                                            |
+| `--expr`                         | Enable boolean query expressions. Example: `r"foo.*bar" and ("bar" or "baz") and not "qux"`. Prefixes: `r=regex`, `c=case-sensitive`, `w=whole-word`, `f=fuzzy`                                                                                                  |
 | `--timeout`                      | Stop the search after the specified number of seconds                                                                                                                                                                                                            |
 | `--fuzzy`                        | Enable fuzzy search (Highlighting and counting matches are disabled in this mode if `--word` is not enabled to prevent the program from slowing down). except when `--expr` is enabled, in which case you can make it fuzzy by putting `f` before term: `f"foo"` |
 | `--fuzzy-level`                  | Fuzzy matching threshold (0-99). Higher values require closer matches (default: `80`)                                                                                                                                                                            |
@@ -93,7 +91,487 @@ psk "error\d+" --regex
 | `--full-path`                    | Display full path of files and directories                                                                                                                                                                                                                       |
 | `--paths-only`                   | Only show matching file paths for content search                                                                                                                                                                                                                 |
 
+## Search Types
+
+### Search File Names
+
+```bash
+psk "config" --file
+```
+
+### Search Directory Names
+
+```bash
+psk "backup" --directory
+```
+
+### Search File Contents
+
+```bash
+psk "TODO" --content
+```
+
+### Search Everywhere
+
+```bash
+psk "error"
+```
+
+Equivalent to:
+
+```bash
+psk "error" --file --directory --content
+```
+
+## Query Modes
+
+By default, the query is treated as plain text.
+
+Example:
+
+```bash
+psk "hello world"
+```
+
+### Case Sensitive Search
+
+```bash
+psk "Hello" --case-sensitive
+```
+
+Matches:
+
+```text
+Hello
+```
+
+Does not match:
+
+```text
+hello
+HELLO
+```
+
+### Whole Word Search
+
+```bash
+psk "cat" --word
+```
+
+Matches:
+
+```text
+cat
+```
+
+Does not match:
+
+```text
+cats
+concatenate
+```
+
+### Regular Expression Search
+
+Enable regex mode:
+
+```bash
+psk "error\d+" --regex
+```
+
+Example matches:
+
+```text
+error1
+error25
+error999
+```
+
+## Fuzzy Search
+
+Fuzzy search allows approximate matching.
+
+Example:
+
+```bash
+psk "apple" --fuzzy
+```
+
+Can match:
+
+```text
+appl
+appel
+aple
+```
+
+### Fuzzy Similarity Threshold
+
+```bash
+psk "apple" --fuzzy --fuzzy-level 90
+```
+
+Range: `0-99`
+
+Higher values require closer matches.
+
+Examples:
+
+| Level | Strictness  |
+|-------|-------------|
+| 60    | Loose       |
+| 80    | Recommended |
+| 95    | Very strict |
+
+Default: `80`
+
+## Expression Queries
+
+Expression mode enables logical search expressions.
+
+Enable:
+
+```bash
+psk '("error" or "warning") and not "debug"' --expr
+```
+
+### Supported Operators
+
+#### AND
+
+```bash
+psk '"foo" and "bar"' --expr
+```
+
+Both terms must match.
+
+#### OR
+
+```bash
+psk '"foo" or "bar"' --expr
+```
+
+At least one term must match.
+
+#### NOT
+
+```bash
+psk 'not "foo"' --expr
+```
+
+Exclude matches containing the term.
+
+#### PARENTHESES
+
+```bash
+psk '("foo" or "bar") and not "baz"' --expr
+```
+
+Used for grouping expressions.
+
+### Expression Prefixes
+
+Each term can have its own search mode.
+
+#### Regex
+
+```text
+r"pattern"
+```
+
+Example:
+
+```bash
+psk 'r"error\d+"' --expr
+```
+
+#### Case Sensitive
+
+```text
+c"text"
+```
+
+Example:
+
+```bash
+psk 'c"Error"' --expr
+```
+
+#### Whole Word
+
+```text
+w"text"
+```
+
+Example:
+
+```bash
+psk 'w"cat"' --expr
+```
+
+#### Fuzzy
+
+```text
+f"text"
+```
+
+Example:
+
+```bash
+psk 'f"apple"' --expr
+```
+
+### Combined Prefixes
+
+Prefixes can be combined.
+
+Examples:
+
+```text
+rc"text"
+cw"text"
+cf"text"
+wcf"text"
+```
+
+Example:
+
+```bash
+psk 'rc"Error\d+"' --expr
+```
+
+Meaning:
+
+- regex
+- case-sensitive
+
+simultaneously.
+
+Allowed modes: `r`, `c`, `w`, `f`, `rc`, `cr`, `cw`, `wc`, `cf`, `fc`, `wf`, `fw`, `cwf`, `cfw`, `wcf`, `wfc`, `fcw`, `fwc`
+
+## Extension Filters
+
+Include only specific extensions:
+
+```bash
+psk "TODO" --ext py --ext js
+```
+
+Exclude extensions:
+
+```bash
+psk "TODO" --exclude-ext exe --exclude-ext dll
+```
+
+## Path Filters
+
+### Include Paths
+
+```bash
+psk "TODO" \
+    --include src \
+    --include tests
+```
+
+Only search inside those paths.
+
+### Exclude Paths
+
+```bash
+psk "TODO" \
+    --exclude build \
+    --exclude .git
+```
+
+Skip those paths.
+
+## Regex Path Filters
+
+### Include
+
+```bash
+psk "TODO" \
+    --re-include "src/.*"
+```
+
+### Exclude
+
+```bash
+psk "TODO" \
+    --re-exclude "node_modules|dist"
+```
+
+## Size Filters
+
+Limit search by size.
+
+Maximum:
+
+```bash
+psk "TODO" --max-size 100
+```
+
+Only search files/directories up to: `100 MB`
+
+Minimum:
+
+```bash
+psk "TODO" --min-size 10
+```
+
+Only search files/directories larger than: `10 MB`
+
+## Archive Search
+
+Enable archive support:
+
+```bash
+psk "TODO" --archive
+```
+
+Supported formats: `zip`, `rar`, `7z`, `gz`, `bz2`, `xz`, `tar`, `tar.gz`, `tar.bz2`, `tar.xz`
+
+### Nested Archives
+
+Pseek supports recursive archive traversal.
+
+Example:
+
+```text
+backup.zip
+ └── source.7z
+      └── notes.txt
+```
+
+Pseek can search:
+
+```text
+backup.zip::source.7z::notes.txt
+```
+
+### Archive Depth
+
+Limit recursion depth:
+
+```bash
+psk "TODO" --archive --depth 2
+```
+
+Meaning:
+
+```text
+archive level 1
+archive level 2
+```
+
+will be searched.
+
+Deeper levels will be skipped.
+
+## Archive Filters
+
+### Extension Filters
+
+```bash
+psk "TODO" --archive --arc-ext py
+```
+
+Only search `.py` files inside archives.
+
+```bash
+psk "TODO" --archive --arc-exc-ext jpg
+```
+
+Exclude `.jpg` files inside archives.
+
+### Path Filters
+
+Include:
+
+```bash
+psk "TODO" --archive --arc-include src
+```
+
+Exclude:
+
+```bash
+psk "TODO" --archive --arc-exclude cache
+```
+
+### Size Filters
+
+Maximum:
+
+```bash
+psk "TODO" --archive --arc-max 10
+```
+
+Minimum:
+
+```bash
+psk "TODO" --archive --arc-min 1
+```
+
+Values are in MB.
+
+**Note:** Archive directory sizes are usually reported as zero by archive formats, therefore archive size filtering is mainly useful for files.
+
+## RAR Backend
+
+RAR archives require an external backend that must be set up.
+
+Supported backends include:
+
+- UnRAR
+- 7-Zip
+- BSDTar
+- Unar
+
+Example:
+
+```bash
+psk "unrar" --rar-backend /usr/bin/unrar
+```
+
+Windows:
+
+```bash
+psk "unrar" --rar-backend "C:\Program Files\WinRAR\UnRAR.exe"
+```
+
+Enter the file type in the query (e.g. `unrar`, `bsdtar`, `unar`, `7z`).
+
+## Output Options
+
+### Show Full Paths
+
+```bash
+psk "TODO" --full-path
+```
+
+### Paths Only
+
+Only display matching file paths:
+
+```bash
+psk "TODO" --content --paths-only
+```
+
+Useful for very large result sets.
+
+## Timeout
+
+Stop the search automatically after a specified number of seconds.
+
+Example:
+
+```bash
+psk "TODO" --timeout 30
+```
+
+If the search exceeds the limit, it will be terminated.
+
 ## Requirements
 
-* Python 3.6 or higher
+* Python `3.8+`
 * `unrar`, `bsdtar`, `unar` or `7zip` for the [rarfile](https://pypi.org/project/rarfile/) library to support searching inside `.rar` files (optional)
