@@ -46,7 +46,7 @@ def seek(config):
             except Exception:
                 pass
     # Content: key: file path, value: set of line matches
-    matches = {'directory': set(), 'file': set(), 'content': {} if not config.no_content else set()}
+    matches = {'directory': set(), 'file': set(), 'content': {} if not config.paths_only else set()}
 
     for p in config.path.rglob('*'):
         try:
@@ -104,15 +104,24 @@ def seek(config):
                 # First, check if the file is an archive, extract it from the archive and perform a search
                 if config.archive and p_ext in ARCHIVE_EXTS:
                     for fname, content in extract_text_from_archive(p, config):
+                        if binary_pattern and not binary_pattern.search(content):
+                            continue
+                        
+                        # Try decoding byte data to UTF-8 text. Continue if decoding fails
+                        try:
+                            decoded_content = content.decode('utf-8')
+                        except UnicodeDecodeError:
+                            continue
+
                         # Change file_label for archive files
                         archive_label = file_label + fname
 
                         lines = []
-                        for num, line in enumerate(content.splitlines(), 1):
+                        for num, line in enumerate(decoded_content.splitlines(), 1):
                             if not pattern.evaluate(line):
                                 continue
 
-                            if config.no_content:
+                            if config.paths_only:
                                 matches['content'].add(style(archive_label, fg='cyan'))
                                 break
 
@@ -136,7 +145,7 @@ def seek(config):
                 with open(p, 'rb') as f:
                     # Memory-map the file for efficient access
                     with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                        if binary_pattern is not None and not binary_pattern.search(mm):
+                        if binary_pattern and not binary_pattern.search(mm):
                             continue
 
                         lines = []
@@ -154,7 +163,7 @@ def seek(config):
                             # If the pattern matches in the decoded line
                             if pattern.evaluate(line_decoded):
                                 # Avoid searching through the entire file content if the fast-content flag is True
-                                if config.no_content:
+                                if config.paths_only:
                                     matches['content'].add(style(file_label, fg='cyan'))
                                     break
                                 count = pattern.count_matches(line_decoded) if isinstance(pattern, TermNode) else 0

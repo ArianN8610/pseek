@@ -14,6 +14,8 @@ EXCLUDED_EXTENSIONS = (
 )
 
 EXTENSIONS_PATH = Path(__file__).parent / "compound_extensions"
+with open(EXTENSIONS_PATH, "r") as f:
+    COMPOUND_EXTENSIONS = {line.strip() for line in f}
 
 
 def compile_regex(txt, flags=0) -> re.Pattern | None:
@@ -33,14 +35,6 @@ def get_archive_path_size(info, file_type: str) -> float:
         return info.uncompressed / 1_048_576
     elif file_type in ('tar', 'tar.gz', 'tar.bz2', 'tar.xz'):
         return info.size / 1_048_576
-
-
-def try_decode(data: bytes):
-    """Try decoding byte data to UTF-8 text. Return None if decoding fails."""
-    try:
-        return data.decode('utf-8')
-    except UnicodeDecodeError:
-        return None
 
 
 def check_rar_backend(archive_enabled: bool, tool_path: str, backend: str):
@@ -100,9 +94,11 @@ def get_path_suffix(path: Path) -> str:
     """ If multiple file suffixes are valid, return them, otherwise return only the last suffix """
     if path.is_dir():
         return ''
-    
-    with open(EXTENSIONS_PATH, "r") as f:
-        extensions = [line.strip() for line in f]
-    
-    file_suffixes = ''.join(path.suffixes)[1:].lower()
-    return file_suffixes if file_suffixes in extensions else path.suffix[1:].lower()
+
+    suffixes = ''.join(path.suffixes)[1:].lower()
+
+    return (
+        suffixes
+        if suffixes in COMPOUND_EXTENSIONS
+        else path.suffix[1:].lower()
+    )

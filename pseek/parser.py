@@ -14,6 +14,8 @@ class TermNode(ExprNode):
     """Node representing a single search term"""
     def __init__(self, term: str, regex, whole_word, case_sensitive, fuzzy, fuzzy_level):
         self.raw_term = term
+        self.term_lower = term.lower()
+        self.regex = regex
         self.whole_word = whole_word
         self.case_sensitive = case_sensitive
         self.fuzzy = fuzzy
@@ -32,12 +34,16 @@ class TermNode(ExprNode):
             self.pattern = compile_regex(term, flags)  # Precompile the regex pattern for performance
 
     def evaluate(self, text: str) -> bool:
-        if not self.fuzzy:
-            return bool(self.pattern.search(text))
-
         # Fuzzy search mode
         text_cmp = text if self.case_sensitive else text.lower()
-        term = self.raw_term if self.case_sensitive else self.raw_term.lower()
+        term = self.raw_term if self.case_sensitive else self.term_lower
+        
+        if not self.fuzzy:
+            # Use substring search for more speed
+            if not self.regex and not self.whole_word:
+                return term in text_cmp
+
+            return bool(self.pattern.search(text))
 
         if self.whole_word:
             words = re.findall(r'\w+', text_cmp)
@@ -54,7 +60,7 @@ class TermNode(ExprNode):
     def count_matches(self, text: str) -> int:
         """Count how many times the pattern or fuzzy term appears in the text"""
         if not self.fuzzy:
-            return len(list(self.pattern.finditer(text)))
+            return sum(1 for _ in self.pattern.finditer(text))
 
         text_cmp = text if self.case_sensitive else text.lower()
         term = self.raw_term if self.case_sensitive else self.raw_term.lower()
@@ -224,8 +230,6 @@ def highlight_text(expr: ExprNode, text: str) -> str:
         elif isinstance(node, AndNode) or isinstance(node, OrNode):
             collect_matches(node.left)
             collect_matches(node.right)
-        elif isinstance(node, NotNode):
-            collect_matches(node.child)
 
     collect_matches(expr)
 

@@ -1,7 +1,7 @@
 import io
 from click import style
 from pathlib import Path
-from .utils import get_archive_path_size, try_decode, get_path_suffix, EXCLUDED_EXTENSIONS
+from .utils import get_archive_path_size, get_path_suffix, EXCLUDED_EXTENSIONS
 # Archive modules
 import zipfile, py7zr, tarfile, gzip, bz2, lzma, rarfile
 
@@ -12,10 +12,10 @@ ARCHIVE_EXTS = ('zip', 'rar', '7z', 'tar', 'tar.gz', 'tar.bz2', 'tar.xz', 'gz', 
 def archive_should_skip(path_info: Path, config, p_size: float, file_ext):
     """Check whether the file/directory inside archive files should be skipped based on various filters"""
 
-    if (config.arc_inc and not any(path_info.is_relative_to(inc) for inc in config.arc_inc)) \
-            or (config.arc_exc and any(path_info.is_relative_to(exc) for exc in config.arc_exc)) \
+    if (config.arc_include and not any(path_info.is_relative_to(inc) for inc in config.arc_include)) \
+            or (config.arc_exclude and any(path_info.is_relative_to(exc) for exc in config.arc_exclude)) \
             or (config.arc_ext and file_ext not in config.arc_ext) \
-            or (config.arc_ee and file_ext in config.arc_ee) \
+            or (config.arc_exc_ext and file_ext in config.arc_exc_ext) \
             or (config.arc_max and p_size > config.arc_max) \
             or (config.arc_min and p_size < config.arc_min):
         return True
@@ -193,9 +193,7 @@ def extract_text_from_archive(file_path: Path, config, depth: int = None,
                         ) or info.is_dir() or new_path_ext in EXCLUDED_EXTENSIONS:
                             continue
 
-                        text = try_decode(data)
-                        if text is not None:
-                            yield label_prefix + str(file_name), text
+                        yield label_prefix + str(file_name), data
         # Handle 7Z archives
         elif file_ext == '7z':
             with py7zr.SevenZipFile(file_stream, mode='r') as archive:
@@ -220,9 +218,7 @@ def extract_text_from_archive(file_path: Path, config, depth: int = None,
                         ) or info.is_directory or new_path_ext in EXCLUDED_EXTENSIONS:
                             continue
 
-                        text = try_decode(data)
-                        if text is not None:
-                            yield label_prefix + str(file_name), text
+                        yield label_prefix + str(file_name), data
         # Handle TAR and compressed TAR formats
         elif file_ext in ('tar', 'tar.gz', 'tar.bz2', 'tar.xz'):
             mode = {
@@ -254,16 +250,11 @@ def extract_text_from_archive(file_path: Path, config, depth: int = None,
                         ) or member.isdir() or new_path_ext in EXCLUDED_EXTENSIONS:
                             continue
 
-                        text = try_decode(data)
-                        if text is not None:
-                            yield label_prefix + str(file_name), text
+                        yield label_prefix + str(file_name), data
         # Handle single compressed files like .gz, .bz2, .xz
         elif file_ext in ARCHIVE_EXTS[-3:]:
             opener = {'gz': gzip.open, 'bz2': bz2.open, 'xz': lzma.open}[file_ext]
             with opener(file_stream, 'rb') as f:
-                data = f.read()
-                text = try_decode(data)
-                if text is not None:
-                    yield label_prefix[:-2], text
+                yield label_prefix[:-2], f.read()
     except Exception:
         return
