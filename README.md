@@ -32,9 +32,9 @@ pip install pseek
 ### Install from Source
 
 ```bash
-git clone https://github.com/ArianN8610/pysearch.git
+git clone https://github.com/ArianN8610/pseek.git
 
-cd pysearch
+cd pseek
 
 python -m venv venv
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pseek"
-version = "3.0.0"
+version = "3.0.1"
 description = "Pseek is a Python CLI toolkit to search files, folders, and text"
 readme = "README.md"
 license = "MIT"
@@ -12,15 +12,43 @@ license-files = ["LICENSE"]
 authors = [
     {name = "Arian", email = "ariannasiri86@gmail.com"}
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 dependencies = [
-    "click==8.1.8",
-    "lark==1.2.2",
-    "py7zr==1.0.0",
-    "rarfile==4.2",
-    "rapidfuzz==3.13.0"
+    "click>=8.1,<9",
+    "lark>=1.2,<2",
+    "py7zr>=1.0.0,<2",
+    "rarfile>=4.2,<5",
+    "rapidfuzz>=3.13.0,<4"
 ]
-urls = {Homepage = "https://github.com/ArianN8610/pysearch"}
+keywords = [
+    "search",
+    "cli",
+    "filesystem",
+    "text-search",
+    "grep",
+    "find",
+    "python"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/ArianN8610/pseek"
+Repository = "https://github.com/ArianN8610/pseek"
+Issues = "https://github.com/ArianN8610/pseek/issues"
 
 [project.scripts]
 psk = "pseek.cli:search"
