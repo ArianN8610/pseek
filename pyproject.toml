@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pseek"
-version = "3.0.1"
+version = "3.0.2"
 description = "Pseek is a Python CLI toolkit to search files, folders, and text"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
-    {name = "Arian", email = "ariannasiri86@gmail.com"}
+    {name = "Groot"}
 ]
 requires-python = ">=3.8"
 dependencies = [
@@ -43,9 +43,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ArianN8610/pseek"
-Repository = "https://github.com/ArianN8610/pseek"
-Issues = "https://github.com/ArianN8610/pseek/issues"
+Homepage = "https://github.com/grootle/pseek"
+Repository = "https://github.com/grootle/pseek"
+Issues = "https://github.com/grootle/pseek/issues"
 
 [project.scripts]
 psk = "pseek.cli:search"
