@@ -51,9 +51,9 @@ def seek(config):
     for p in config.path.rglob('*'):
         try:
             p_resolved = p.resolve()
+            p_ext = get_path_suffix(p_resolved)
         except OSError:
             continue
-        p_ext = get_path_suffix(p_resolved)
         # Skip if conditions fail
         if should_skip(config, p_resolved, p_ext):
             continue
