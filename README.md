@@ -32,7 +32,7 @@ pip install pseek
 ### Install from Source
 
 ```bash
-git clone https://github.com/ArianN8610/pseek.git
+git clone https://github.com/grootle/pseek.git
 
 cd pseek
 
